@@ -231,10 +231,12 @@ namespace DojScraper
             // Initial visual state: Set all Status slots to "Idle"
             var allSlots = Enumerable.Range(0, SLOT_COUNT).ToList();
             ClearStatusSlots(allSlots);
-            RedrawFooter(); // Draw initial footer at top of progress area
+            RedrawFooter();
 
             var stopwatch = Stopwatch.StartNew();
             var cts = new CancellationTokenSource();
+
+            // UI Update Loop
             var uiTask = Task.Run(async () => {
                 while (!cts.Token.IsCancellationRequested)
                 {
@@ -244,11 +246,18 @@ namespace DojScraper
                 UpdateGlobalStats(stopwatch.Elapsed);
             });
 
-            var activeDownloadTasks = new List<Task>();
+            var activeTasks = new List<Task>();
 
-            while (!_masterQueue.IsEmpty || activeDownloadTasks.Count > 0)
+            // SCOUTING LIMITER:
+            // Allows us to "look ahead" and check the size of the next 16 files concurrently
+            // without committing download threads yet. This prevents the "GetFileSize" network
+            // lag from blocking the main dispatch loop.
+            var scoutLimiter = new SemaphoreSlim(MAX_TOTAL_THREADS * 2);
+
+            while (!_masterQueue.IsEmpty || activeTasks.Count > 0)
             {
-                activeDownloadTasks.RemoveAll(t => t.IsCompleted);
+                // Clean up finished tasks
+                activeTasks.RemoveAll(t => t.IsCompleted);
 
                 if (_masterQueue.IsEmpty)
                 {
@@ -256,47 +265,70 @@ namespace DojScraper
                     continue;
                 }
 
-                if (_masterQueue.TryPeek(out DownloadItem nextItem))
+                // Check if we have capacity to "Scout" (Check size of) a new item
+                if (scoutLimiter.CurrentCount > 0 && _masterQueue.TryDequeue(out DownloadItem nextItem))
                 {
-                    long size = await GetFileSizeAsync(nextItem.Url);
+                    await scoutLimiter.WaitAsync();
 
-                    bool isLarge = size == 0 || size > LARGE_FILE_THRESHOLD;
-                    int cost = isLarge ? LARGE_FILE_COST : SMALL_FILE_COST;
-
-                    if (_threadManager.Available >= cost && _freeUiSlots.Count >= cost)
+                    // Launch the lifecycle of this file in a background task immediately
+                    // so the Main loop can continue to the next item instantly.
+                    var task = Task.Run(async () =>
                     {
-                        _masterQueue.TryDequeue(out _);
-
-                        await _threadManager.AcquireAsync(cost);
-
-                        var allocatedSlots = new List<int>();
-                        for (int i = 0; i < cost; i++)
+                        try
                         {
-                            _freeUiSlots.TryDequeue(out int slot);
-                            allocatedSlots.Add(slot);
-                        }
-                        allocatedSlots.Sort();
+                            // 1. Check Size (This used to block the main loop)
+                            long size = await GetFileSizeAsync(nextItem.Url);
 
-                        var job = Task.Run(async () =>
-                        {
+                            bool isLarge = size == 0 || size > LARGE_FILE_THRESHOLD;
+                            int cost = isLarge ? LARGE_FILE_COST : SMALL_FILE_COST;
+
+                            // 2. Wait for Execution Threads
+                            await _threadManager.AcquireAsync(cost);
+
+                            // 3. Acquire UI Slots
+                            // Since we hold the ThreadTokens, we are guaranteed slots will eventually
+                            // become available, but we might have to wait a few ms for the previous
+                            // task to finish enqueuing them back.
+                            var allocatedSlots = new List<int>();
+                            while (_freeUiSlots.Count < cost) await Task.Delay(10);
+
+                            for (int i = 0; i < cost; i++)
+                            {
+                                if (_freeUiSlots.TryDequeue(out int slot))
+                                    allocatedSlots.Add(slot);
+                            }
+                            allocatedSlots.Sort();
+
+                            // 4. Execute Download
                             try
                             {
                                 await ProcessDownloadItem(nextItem, allocatedSlots, size, cost);
                             }
                             finally
                             {
+                                // 5. Cleanup
                                 ClearStatusSlots(allocatedSlots);
                                 foreach (var s in allocatedSlots) _freeUiSlots.Enqueue(s);
                                 _threadManager.Release(cost);
                             }
-                        });
+                        }
+                        catch (Exception ex)
+                        {
+                            // Safety catch for logic errors
+                            LogFailure(nextItem, "CRITICAL", ex.Message);
+                        }
+                        finally
+                        {
+                            scoutLimiter.Release();
+                        }
+                    });
 
-                        activeDownloadTasks.Add(job);
-                    }
-                    else
-                    {
-                        await Task.Delay(100);
-                    }
+                    activeTasks.Add(task);
+                }
+                else
+                {
+                    // Throttle slightly if we are maxed out on scouts
+                    await Task.Delay(50);
                 }
             }
 
