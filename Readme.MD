@@ -28,6 +28,7 @@ This tool automates the retrieval of thousands of pages of court records, flight
 ### 👁️ Notable Artifacts: Unredacted Documents
 
 While this tool scrapes the entire repository, specific attention is given to high-value documents. The archive includes the **unredacted** Exhibit 1 from the *Matter of the Estate of Jeffrey E. Epstein* (Virgin Islands Superior Court).
+This document was able to be unredacted via removing the black squares that were being used as temporary redactions. More files are susceptible to this, but I have not found them yet. 
 
 *   **Document:** `2022.03.17-1 Exhibit 1.pdf`
 *   **Case No:** ST-21-RV-00005
