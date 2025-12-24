@@ -25,6 +25,16 @@ This tool automates the retrieval of thousands of pages of court records, flight
 
 ---
 
+### 👁️ Notable Artifacts: Unredacted Documents
+
+While this tool scrapes the entire repository, specific attention is given to high-value documents. The archive includes the **unredacted** Exhibit 1 from the *Matter of the Estate of Jeffrey E. Epstein* (Virgin Islands Superior Court).
+
+*   **Document:** `2022.03.17-1 Exhibit 1.pdf`
+*   **Case No:** ST-21-RV-00005
+*   **Direct Source Link:** [View on Justice.gov](https://www.justice.gov/multimedia/Court%20Records/Matter%20of%20the%20Estate%20of%20Jeffrey%20E.%20Epstein,%20Deceased,%20No.%20ST-21-RV-00005%20(V.I.%20Super.%20Ct.%202021)/2022.03.17-1%20Exhibit%201.pdf)
+
+*Note: This file is automatically detected and downloaded into the `Court Records` subdirectory.*
+
 ## 🛠️ Technical Deep Dive
 
 ### WAF / Security Evasion
