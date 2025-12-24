@@ -101,30 +101,6 @@ This tool is provided for **educational and archival purposes only**. The data d
 ## 🤝 Contributing
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
-
-**Keywords:** Epstein List Download, Ghislaine Maxwell Documents, DOJ Scraper, Court Records, Flight Logs, Declassified, Bulk Downloader.
 ```
 
 ---
-
-### 3. Release Notes (Release v1.0.0)
-*Copy this into the description when you create a "Release" on GitHub.*
-
-### Title: v1.0.0 - Adaptive High-Performance Archival Tool
-
-**Initial Release of the Epstein Files Downloader.**
-
-This release provides a robust solution for archiving the full DOJ Epstein/Maxwell dataset. It specifically addresses issues with file access and directory organization found in other scraping methods.
-
-**Features in this release:**
-*   **Fixed DOJ Disclosures Parsing:** Correctly handles the USWDS Accordion HTML structure. Files are now properly grouped into folders like "Epstein Files Transparency Act" and "Maxwell Proffer" rather than generic or incorrect folders.
-*   **Security Bypass:** Implemented `curl/7.68.0` User-Agent spoofing to resolve HTTP 404 errors on valid links.
-*   **Hybrid Threading:**
-    *   Files >50MB trigger an 8-thread chunked downloader.
-    *   Files <50MB utilize a concurrent queue for rapid processing.
-*   **Full File Support:** Automatically detects and downloads `.pdf`, `.zip`, `.mp4`, and `.wav` files.
-*   **Live UI:** Console dashboard shows real-time transfer speeds, active threads, and progress bars.
-
-**Download:**
-*   [Source Code (zip)]
-*   [Compiled Binary (win-x64)] *(Optional: if you upload a compiled exe)*
