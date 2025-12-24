@@ -70,10 +70,10 @@ The program analyzes the `Content-Length` header via a `HEAD` request before dow
     ```
 
 ### Output
-The tool will create a `Content` folder in the execution directory. Inside, you will find the organized archive:
+The tool will create a `Epstein Files` folder in the execution directory. Inside, you will find the organized archive:
 
 ```text
-Content/
+Epstein Files/
 ├── Court Records/
 │   ├── unsealed_doc_1.pdf
 │   └── ...
